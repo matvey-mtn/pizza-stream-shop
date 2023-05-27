@@ -3,11 +3,12 @@ package com.pizza.stream.model
 class OrderProcessingDetails(
     val order: Order,
     val pizza: Pizza,
-    val ingredientsAdjustedToSize: Map<Ingredient, Amount>,
-    var status: Status = Status.ASSEMBLED
+    val ingredients: Map<Name, AmountInGrams>,
+    var status: Status = Status.PENDING
 )
 
 enum class Status {
+    PENDING,
     ASSEMBLED,
     BACKED,
     PACKAGED,

@@ -1,7 +1,8 @@
 package com.pizza.stream
 
+import com.pizza.stream.Topics.ORDERS_TOPIC
+import com.pizza.stream.Topics.PIZZA_SINK_TOPIC
 import com.pizza.stream.service.OrderService
-import com.pizza.stream.service.RecipesService
 import java.time.Duration
 import java.util.Properties
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -18,19 +19,14 @@ class PizzaStreamApp {
 
     companion object {
 
-        val logger: Logger = LoggerFactory.getLogger(PizzaStreamApp::class.java)
-        val recipesService = RecipesService()
-        val ordersService = OrderService()
-        val ordersGenerator = OrdersGenerator(ordersService)
+        private val logger: Logger = LoggerFactory.getLogger(PizzaStreamApp::class.java)
+        private val ordersService = OrderService()
+        private val ordersGenerator = OrdersGenerator(ordersService)
 
         @JvmStatic
         fun main(args: Array<String>) {
 
-            val pizzaStreamTopologyFactory = PizzaStreamTopologyFactory(
-                "orders",
-                "pizza-sink",
-                recipesService
-            )
+            val pizzaStreamTopologyFactory = PizzaStreamTopologyFactory(ORDERS_TOPIC, PIZZA_SINK_TOPIC)
 
             val pizzaStreamTopology = pizzaStreamTopologyFactory.createTopology()
 
@@ -73,7 +69,7 @@ class PizzaStreamApp {
         }
 
 
-        fun streamProperties() = Properties().apply {
+        private fun streamProperties() = Properties().apply {
             put(StreamsConfig.APPLICATION_ID_CONFIG, "pizza-stream")
             put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
             put(StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG, StreamsConfig.OPTIMIZE)

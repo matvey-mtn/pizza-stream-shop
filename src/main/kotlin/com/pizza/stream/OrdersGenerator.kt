@@ -1,5 +1,6 @@
 package com.pizza.stream
 
+import com.pizza.stream.Topics.ORDERS_TOPIC
 import com.pizza.stream.model.Order
 import com.pizza.stream.model.Pizza
 import com.pizza.stream.model.PizzaSize
@@ -10,6 +11,7 @@ import java.util.Properties
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.random.Random
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -17,7 +19,10 @@ import org.apache.kafka.common.serialization.StringSerializer
 
 class OrdersGenerator(private val orderService: OrderService) : AutoCloseable {
 
-    private val generatedId = AtomicInteger(1)
+    private val ordersCounter = AtomicInteger(1)
+    private val orderId: Int
+        get() = ordersCounter.getAndIncrement()
+
     private val kafkaProducer = KafkaProducer<String, Order>(
         Properties().apply {
             put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
@@ -31,25 +36,50 @@ class OrdersGenerator(private val orderService: OrderService) : AutoCloseable {
 
     private val scheduledThreadPoolExecutor = Executors.newSingleThreadScheduledExecutor()
 
+
     fun start() {
         scheduledThreadPoolExecutor.scheduleAtFixedRate(
-            {
-                val orderId = generatedId.getAndIncrement()
-                val pizza = Pizza("Margheritta-$orderId", PizzaType.MARGHERITA, PizzaSize.MEDIUM)
-                val order = Order(
-                    orderId,
-                    listOf(pizza),
-                    "Matt",
-                    null,
-                    "101",
-                    orderService.getPrice(pizza)!!
-                )
-                kafkaProducer.send(ProducerRecord("orders", order))
-            },
+            ::orderRandomPizza,
             0,
             5,
             TimeUnit.SECONDS
         )
+    }
+
+    private fun orderRandomPizza() {
+        val pizzaType = when(Random.nextInt(4)) {
+            0 -> PizzaType.MARGHERITA
+            1 -> PizzaType.PEPPERONI
+            2 -> PizzaType.VEGGIE
+            3 -> PizzaType.HAWAIIAN
+            else -> PizzaType.MARGHERITA
+        }
+
+        val pizzaSize = when (Random.nextInt(3)) {
+            0 -> PizzaSize.SMALL
+            1 -> PizzaSize.MEDIUM
+            2 -> PizzaSize.LARGE
+            else -> PizzaSize.MEDIUM
+        }
+
+        val customerName = when (Random.nextInt(4)) {
+            0 -> "Leonardo"
+            1 -> "Michelangelo"
+            2 -> "Donatello"
+            3 -> "Raphael"
+            else -> "Splitner"
+        }
+
+        val pizza = Pizza("${pizzaType.name.lowercase()}-$orderId", pizzaType, pizzaSize)
+
+        val order = Order(
+            orderId,
+            pizza,
+            customerName,
+            orderService.getPrice(pizza)
+        )
+
+        kafkaProducer.send(ProducerRecord(ORDERS_TOPIC, order))
     }
 
     override fun close() {
