@@ -22,29 +22,29 @@ import org.slf4j.LoggerFactory;
 public class PizzaStreamTopologyFactory {
 
     public final String incomingOrdersTopicName;
-    public final String pizzaDeliveryTopicName;
+    public final String pizzaOutputTopicName;
 
     private final Logger logger = LoggerFactory.getLogger(PizzaStreamTopologyFactory.class);
 
-    public PizzaStreamTopologyFactory(String incomingOrdersTopicName, String pizzaDeliveryTopicName) {
+    public PizzaStreamTopologyFactory(String incomingOrdersTopicName, String pizzaOutputTopicName) {
         this.incomingOrdersTopicName = incomingOrdersTopicName;
-        this.pizzaDeliveryTopicName = pizzaDeliveryTopicName;
+        this.pizzaOutputTopicName = pizzaOutputTopicName;
     }
 
     public Topology createTopology() {
         StreamsBuilder builder = new StreamsBuilder();
 
-        KStream<String, Order> stream = builder.stream(
+        KStream<String, Order> pizzaStream = builder.stream(
             incomingOrdersTopicName,
             Consumed.with(Serdes.String(), PizzaSerdes.OrdersSerde())
         );
 
-        stream
+        pizzaStream
             .mapValues(this::assembleOrder, Named.as("AssembleProcessor"))
             .mapValues(this::putIntoOven, Named.as("BackingProcessor"))
             .mapValues(this::packagePizza, Named.as("PackagingProcessor"))
             .mapValues(this::completeOrderProcessing, Named.as("MarkOrderAsCompleted"))
-            .to(pizzaDeliveryTopicName, Produced.valueSerde(PizzaSerdes.OrderProcessingDetailsSerde()));
+            .to(pizzaOutputTopicName, Produced.valueSerde(PizzaSerdes.OrderProcessingDetailsSerde()));
 
         return builder.build();
     }

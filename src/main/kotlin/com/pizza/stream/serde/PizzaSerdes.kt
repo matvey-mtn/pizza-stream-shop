@@ -3,6 +3,7 @@ package com.pizza.stream.serde
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.pizza.stream.model.Order
 import com.pizza.stream.model.OrderProcessingDetails
+import com.pizza.stream.model.aggregations.Analytics
 import org.apache.kafka.common.serialization.Deserializer
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.common.serialization.Serializer
@@ -22,6 +23,10 @@ object PizzaSerdes {
     @Suppress("FunctionName")
     @JvmStatic
     fun OrdersSerializer() = OrdersSerializerImpl()
+
+    @Suppress("FunctionName")
+    @JvmStatic
+    fun AnalyticsSerde() = AnalyticsSerdeImpl()
 
     class OrdersSerdeImpl : Serde<Order> {
         override fun serializer(): Serializer<Order> {
@@ -47,6 +52,20 @@ object PizzaSerdes {
         override fun deserializer(): Deserializer<OrderProcessingDetails> {
             return Deserializer<OrderProcessingDetails> { topic, data ->
                 objMapper.readValue(data, OrderProcessingDetails::class.java)
+            }
+        }
+    }
+
+    class AnalyticsSerdeImpl : Serde<Analytics> {
+        override fun serializer(): Serializer<Analytics> {
+            return Serializer<Analytics> { topic, data ->
+                data?.let { objMapper.writeValueAsBytes(it) } ?: byteArrayOf()
+            }
+        }
+
+        override fun deserializer(): Deserializer<Analytics> {
+            return Deserializer<Analytics> { topic, data ->
+                objMapper.readValue(data, Analytics::class.java)
             }
         }
     }

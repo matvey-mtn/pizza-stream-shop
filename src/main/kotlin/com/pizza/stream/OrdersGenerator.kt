@@ -20,8 +20,6 @@ import org.apache.kafka.common.serialization.StringSerializer
 class OrdersGenerator(private val orderService: OrderService) : AutoCloseable {
 
     private val ordersCounter = AtomicInteger(1)
-    private val orderId: Int
-        get() = ordersCounter.getAndIncrement()
 
     private val kafkaProducer = KafkaProducer<String, Order>(
         Properties().apply {
@@ -69,6 +67,8 @@ class OrdersGenerator(private val orderService: OrderService) : AutoCloseable {
             3 -> "Raphael"
             else -> "Splitner"
         }
+
+        val orderId = ordersCounter.getAndIncrement()
 
         val pizza = Pizza("${pizzaType.name.lowercase()}-$orderId", pizzaType, pizzaSize)
 
